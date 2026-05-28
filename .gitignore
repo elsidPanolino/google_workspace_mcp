@@ -1,0 +1,6 @@
+node_modules/
+tokens/
+.env
+.claude/
+**/notes.md
+**/.tmp/
