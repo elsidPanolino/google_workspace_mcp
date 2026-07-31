@@ -7,7 +7,7 @@ export class CalendarClient {
 
   async listCalendars() {
     const res = await this.calendar.calendarList.list();
-    return res.data.items;
+    return res.data;
   }
 
   async listEvents(calendarId = "primary", timeMin, timeMax, maxResults = 25, query) {
@@ -20,7 +20,7 @@ export class CalendarClient {
       singleEvents: true,
       orderBy: "startTime",
     });
-    return res.data.items;
+    return res.data;
   }
 
   async getEvent(calendarId = "primary", eventId) {

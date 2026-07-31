@@ -1,9 +1,15 @@
-import "dotenv/config";
+import dotenv from "dotenv";
 import { google } from "googleapis";
 import { createServer } from "http";
 import { readFileSync, writeFileSync, mkdirSync, existsSync } from "fs";
-import { dirname } from "path";
+import { dirname, join, isAbsolute } from "path";
+import { fileURLToPath } from "url";
 import open from "open";
+
+// Resolve .env and relative token paths against the repo root, not process.cwd().
+// MCP clients launch this server from arbitrary working directories.
+const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
+dotenv.config({ path: join(ROOT, ".env") });
 
 // Full Google Workspace scope set. If you trim the services you register in
 // index.js, you can trim the matching scopes here to shrink the consent screen.
@@ -25,7 +31,8 @@ const SCOPES = [
   "https://www.googleapis.com/auth/presentations",
 ];
 
-const TOKEN_PATH = process.env.TOKEN_PATH || "./tokens/google-tokens.json";
+const rawTokenPath = process.env.TOKEN_PATH || "./tokens/google-tokens.json";
+const TOKEN_PATH = isAbsolute(rawTokenPath) ? rawTokenPath : join(ROOT, rawTokenPath);
 const REDIRECT_URI =
   process.env.GOOGLE_REDIRECT_URI || "http://localhost:3000/oauth2callback";
 

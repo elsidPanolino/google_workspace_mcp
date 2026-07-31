@@ -71,6 +71,7 @@ Gmail's `gmail.modify` and `gmail.send` are **restricted scopes** — for unveri
 ## Setup
 
 1. **Google Cloud Console** — enable these APIs in your project: Google Sheets, Drive, Apps Script, Calendar, Gmail, Docs, Slides. Create an **OAuth client ID → Web application**, add redirect URI `http://localhost:3000/oauth2callback`.
+   Also enable the **per-user Apps Script API toggle** at https://script.google.com/home/usersettings (off by default; without it `gas_*` reads work but writes fail mid-task).
 2. **`.env`** — copy `.env.example`, fill in `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET`.
 3. **`npm install`**
 4. **`npm run auth`** — one-time browser consent; tokens persist to `tokens/google-tokens.json` and auto-refresh.

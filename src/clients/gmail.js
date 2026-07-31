@@ -60,7 +60,7 @@ export class GmailClient {
 
   async listLabels() {
     const res = await this.gmail.users.labels.list({ userId: "me" });
-    return res.data.labels;
+    return res.data;
   }
 
   async modifyLabels(messageId, addLabelIds = [], removeLabelIds = []) {

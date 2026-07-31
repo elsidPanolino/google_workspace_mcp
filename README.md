@@ -27,6 +27,7 @@ A Node.js [Model Context Protocol](https://modelcontextprotocol.io) server that 
 1. Create or select a project at [console.cloud.google.com](https://console.cloud.google.com).
 2. **Enable these APIs** (APIs & Services → Library):
    Google Sheets, Drive, Apps Script, Calendar, Gmail, Docs, Slides.
+   Additionally, each user must turn on the **Apps Script API** for their own account at [script.google.com/home/usersettings](https://script.google.com/home/usersettings) — it is off by default, and without it Apps Script *writes* fail even though reads succeed.
 3. Configure the **OAuth consent screen**:
    - User type: **External**
    - Add your Google account under **Test users** (required — Gmail scopes are restricted, so unverified apps only work for listed test users).
