@@ -1,0 +1,20 @@
+Set up the Google Workspace MCP server on this machine. Do the steps for me, pausing only where I need to act in the browser:
+
+1. Check Node.js 18+ is installed (help me install it if not), then clone
+   https://github.com/elsidPanolino/google_workspace_mcp
+   into a sensible location and run `npm install` in it.
+
+2. Walk me through Google Cloud Console setup (I'll do the clicking, you guide me step by step):
+   - Create or select a project at console.cloud.google.com
+   - Enable these APIs: Google Sheets, Drive, Apps Script, Calendar, Gmail, Docs, Slides
+   - Configure the OAuth consent screen (User type: External) and add my own Google account under Test users
+   - Create an OAuth client ID (type: Web application) with authorized redirect URI http://localhost:3000/oauth2callback
+   - I'll paste you nothing — instead, tell me exactly where each value goes in the next step.
+
+3. Copy `.env.example` to `.env` and open it for me. I'll fill in GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET myself from the Cloud Console. Don't print or echo the values back. Keep the default redirect URI and token path.
+
+4. Run `npm run auth`. A browser will open — I'll log in with the Google account I added as a test user and click through the "unverified app" warning (Advanced → Continue). Wait for me, then confirm tokens were saved to tokens/google-tokens.json.
+
+5. Register the server: `claude mcp add google-workspace -- node <absolute path to repo>/src/index.js` — use forward slashes in the path on Windows. Verify with `claude mcp list`.
+
+6. Give me a final checklist (deps ✓, .env filled ✓, tokens ✓, MCP registered ✓) and remind me to start a new session so the google-workspace tools load.
