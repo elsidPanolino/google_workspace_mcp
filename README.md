@@ -76,7 +76,7 @@ claude mcp add google-workspace -- node /absolute/path/to/google_workspace_MCP/s
 On Windows, use a forward-slash path to avoid backslash stripping:
 
 ```bash
-claude mcp add google-workspace -- node C:/google_workspace_MCP/src/index.js
+claude mcp add google-workspace -- node C:/path/to/google_workspace_MCP/src/index.js
 ```
 
 Verify it connected:
@@ -96,7 +96,7 @@ Add to your `claude_desktop_config.json`:
   "mcpServers": {
     "google-workspace": {
       "command": "node",
-      "args": ["C:/google_workspace_MCP/src/index.js"]
+      "args": ["/absolute/path/to/google_workspace_MCP/src/index.js"]
     }
   }
 }

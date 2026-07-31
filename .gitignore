@@ -4,3 +4,10 @@ tokens/
 .claude/
 **/notes.md
 **/.tmp/
+
+# Local, machine-specific automation — not part of the shared server
+scripts/
+_whoami.mjs
+
+# Company-internal instructions (per-machine, never published)
+CLAUDE.local.md

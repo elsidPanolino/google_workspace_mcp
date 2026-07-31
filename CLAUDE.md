@@ -6,6 +6,13 @@ Node.js MCP server that exposes the **full Google Workspace API surface** to MCP
 
 **76 tools across 7 services:** Sheets (26), Drive (12), Apps Script (12), Calendar (7), Gmail (7), Docs (6), Slides (6).
 
+## Safety Rules (MANDATORY — these tools touch live company data)
+
+- **Gmail — never send without confirmation.** Do not call `gmail_send` unless the user has explicitly confirmed the recipient, subject, and body in this session. Prefer `gmail_create_draft` so a human reviews before sending.
+- **No permanent deletes.** Use `drive_trash_file` (reversible), never `drive_delete_file`, unless the user explicitly asks for permanent deletion. Confirm before `sheets_delete_tab`, `sheets_delete_rows_columns`, `sheets_clear`, or `calendar_delete_event`.
+- **Apps Script writes are destructive.** `gas_update_content` FULLY REPLACES all project files. Always `gas_get_content` first and save the previous content locally before writing.
+- **Sharing exposes data externally.** Before `drive_share` or `sheets_share`, confirm the recipient and role. Default to `reader` unless told otherwise.
+
 ## Structure
 
 ```
@@ -32,6 +39,7 @@ src/
 tokens/                 # persisted OAuth tokens (gitignored)
 .env                    # Google OAuth credentials (gitignored)
 .env.example            # credential template
+scripts/                # OPTIONAL local automation, machine-specific (gitignored — do not reference in shared docs)
 ```
 
 ## Architecture
@@ -67,6 +75,22 @@ Gmail's `gmail.modify` and `gmail.send` are **restricted scopes** — for unveri
 3. **`npm install`**
 4. **`npm run auth`** — one-time browser consent; tokens persist to `tokens/google-tokens.json` and auto-refresh.
 
+Setup is **per machine and per Google account**: every user who clones this repo creates their own `.env` (or reuses the team's shared OAuth client ID/secret) and runs `npm run auth` with their own Google account. `.env` and `tokens/` are gitignored and must never be committed.
+
+## Credentials & Token Policy
+
+- **Never** commit, print, echo, or paste the contents of `.env` or `tokens/google-tokens.json` into chats, logs, commits, or issues.
+- One token = one Google account = one machine. Do not copy token files between people or machines.
+- **If a token may be leaked:** revoke access at myaccount.google.com → Security → Third-party access, delete `tokens/`, and re-run `npm run auth`.
+
+## Team Workflow
+
+- Changes to `src/` go through a **pull request to `main`**, not direct pushes.
+- Adding a scope to `SCOPES` in `auth.js` needs team sign-off — every added scope widens what a leaked token can do.
+- Machine-local automation lives in `scripts/` (gitignored). Never import from `scripts/` inside `src/`.
+- When adding or removing tools, keep the tool counts in this file and README.md in sync.
+- Shared OAuth client owner / test-user access: ask `<team lead — fill in>`.
+
 ## Commands
 
 ```bash
@@ -77,8 +101,10 @@ npm start       # start the MCP server (stdio transport)
 ## Connecting to Claude Code
 
 ```bash
-claude mcp add google-workspace -- node C:\google_workspace_MCP\src\index.js
+claude mcp add google-workspace -- node /absolute/path/to/google_workspace_MCP/src/index.js
 ```
+
+On Windows, use forward slashes in the path (e.g. `C:/path/to/google_workspace_MCP/src/index.js`) to avoid backslash stripping. Tools become available in a new session.
 
 ## Key Conventions
 
