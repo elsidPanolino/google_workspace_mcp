@@ -77,6 +77,16 @@ Gmail's `gmail.modify` and `gmail.send` are **restricted scopes** — for unveri
 
 Setup is **per machine and per Google account**: every user who clones this repo creates their own `.env` (or reuses the team's shared OAuth client ID/secret) and runs `npm run auth` with their own Google account. `.env` and `tokens/` are gitignored and must never be committed.
 
+## Staying Updated
+
+At the start of a session where this server's tools will be used (or when the user asks "is this up to date?"):
+
+1. Run `git fetch` in the repo, then compare `git rev-list HEAD..origin/main --count`.
+2. If the local copy is behind, tell the user what's new (`git log HEAD..origin/main --oneline`) and **ask if they want to update**. Do not pull without approval.
+3. If approved: `git pull`, then `npm install`. If `SCOPES` in `src/auth.js` changed, tell the user to re-run `npm run auth`. Never pull over local modifications — if `git status` shows changes, surface them first.
+4. If git isn't available or the folder isn't a git clone: guide the user to download the ZIP from https://github.com/elsidPanolino/google_workspace_mcp (Code → Download ZIP) and replace the repo files — **preserving** `.env`, `tokens/`, and any `CLAUDE.local.md` / `CLAUDE.CMG.md` — then run `npm install`.
+5. Either way, remind the user that updates take effect in a **new session** — the running MCP server keeps executing the old code.
+
 ## Credentials & Token Policy
 
 - **Never** commit, print, echo, or paste the contents of `.env` or `tokens/google-tokens.json` into chats, logs, commits, or issues.
