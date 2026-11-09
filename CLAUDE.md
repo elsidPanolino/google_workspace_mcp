@@ -4,13 +4,13 @@
 
 Node.js MCP server that exposes the **full Google Workspace API surface** to MCP clients (Claude Code, Claude Desktop). One OAuth2 login grants access to seven Google services through a single set of tools.
 
-**76 tools across 7 services:** Sheets (26), Drive (12), Apps Script (12), Calendar (7), Gmail (7), Docs (6), Slides (6).
+**78 tools across 7 services:** Sheets (26), Drive (12), Apps Script (14), Calendar (7), Gmail (7), Docs (6), Slides (6).
 
 ## Safety Rules (MANDATORY — these tools touch live company data)
 
 - **Gmail — never send without confirmation.** Do not call `gmail_send` unless the user has explicitly confirmed the recipient, subject, and body in this session. Prefer `gmail_create_draft` so a human reviews before sending.
 - **No permanent deletes.** Use `drive_trash_file` (reversible), never `drive_delete_file`, unless the user explicitly asks for permanent deletion. Confirm before `sheets_delete_tab`, `sheets_delete_rows_columns`, `sheets_clear`, or `calendar_delete_event`.
-- **Apps Script writes are destructive.** `gas_update_content` FULLY REPLACES all project files. Always `gas_get_content` first and save the previous content locally before writing.
+- **Apps Script writes are destructive.** `gas_update_content` FULLY REPLACES all project files. Always `gas_get_content` first and save the previous content locally before writing. Prefer `gas_patch_content` for small edits and `gas_put_file` to upload a whole file from `scripts/`: both touch one file only, back up to `backups/gas/` and verify the write.
 - **Sharing exposes data externally.** Before `drive_share` or `sheets_share`, confirm the recipient and role. Default to `reader` unless told otherwise.
 
 ## Structure
@@ -123,6 +123,6 @@ On Windows, use forward slashes in the path (e.g. `C:/path/to/google_workspace_M
 - `gas_update_content` is a **FULL REPLACEMENT** of project files — always `gas_get_content` first.
 - `gas_run_script` requires the script to be deployed as an **API executable**.
 - Calendar: all-day events use `YYYY-MM-DD`; timed events use full ISO datetime (e.g. `2026-06-01T09:00:00+08:00`). `calendar.js` picks `date` vs `dateTime` by string length.
-- Gmail send builds a base64url-encoded RFC 2822 message in `gmail.js` (`buildRawMessage`).
+- Gmail send builds a base64url-encoded RFC 2822 message in `gmail.js` (`buildRawMessage`). `gmail_send` / `gmail_create_draft` are plain text unless `html` (inline) or `htmlPath` (a file inside `scripts/`) is passed; then the message is multipart/alternative with `body` as the plain-text fallback. Optional `fromName` sets the sender display name on the account's own address.
 - Drive has both `drive_trash_file` (reversible) and `drive_delete_file` (permanent). Prefer trash.
 - Docs/Slides `*_batch_update` tools accept raw API request arrays for advanced edits beyond the convenience methods.
