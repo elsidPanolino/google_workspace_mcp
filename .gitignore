@@ -11,3 +11,6 @@ _whoami.mjs
 
 # Company-internal instructions (per-machine, never published)
 CLAUDE.local.md
+
+# Local backups written by gas_patch_content
+backups/

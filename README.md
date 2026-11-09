@@ -2,13 +2,13 @@
 
 A Node.js [Model Context Protocol](https://modelcontextprotocol.io) server that exposes the **full Google Workspace API surface** to MCP clients such as Claude Code and Claude Desktop. One OAuth2 login grants access to seven Google services through a single set of tools.
 
-**76 tools across 7 services:**
+**78 tools across 7 services:**
 
 | Service     | Tools | Underlying API           |
 |-------------|-------|--------------------------|
 | Sheets      | 26    | `google.sheets` v4       |
 | Drive       | 12    | `google.drive` v3        |
-| Apps Script | 12    | `google.script` v1       |
+| Apps Script | 14    | `google.script` v1       |
 | Calendar    | 7     | `google.calendar` v3     |
 | Gmail       | 7     | `google.gmail` v1        |
 | Docs        | 6     | `google.docs` v1         |
@@ -160,7 +160,7 @@ tokens/                 # persisted OAuth tokens (gitignored)
 ## Usage notes
 
 - **Sheets** uses **A1 notation** for ranges (e.g. `'Sheet1'!A1:C10`); structural ops use **0-based grid indices, end-exclusive**.
-- **Apps Script**: `gas_update_content` is a **FULL REPLACEMENT** of project files — always `gas_get_content` first. `gas_run_script` requires the script deployed as an **API executable**.
+- **Apps Script**: `gas_update_content` is a **FULL REPLACEMENT** of project files — always `gas_get_content` first. For a small change prefer `gas_patch_content` (find-and-replace in one file); to upload a whole file from disk use `gas_put_file` (local path must be in `scripts/` or `backups/`). Both leave other files untouched, back up to `backups/gas/` and verify the write. `gas_run_script` requires the script deployed as an **API executable**.
 - **Calendar**: all-day events use `YYYY-MM-DD`; timed events use full ISO datetime (e.g. `2026-06-01T09:00:00+08:00`).
 - **Gmail** send builds a base64url-encoded RFC 2822 message.
 - **Drive** has both `drive_trash_file` (reversible) and `drive_delete_file` (permanent) — prefer trash.
