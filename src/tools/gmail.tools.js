@@ -30,6 +30,7 @@ export function registerGmailTools(server, client, handler) {
       fromName: z.string().optional().describe("Sender display name, e.g. \"Asian Power Awards\" (address stays the authenticated account)"),
       cc: z.string().optional(),
       bcc: z.string().optional(),
+      replyTo: z.string().optional().describe("Reply-To address: where replies should go, if not the sender"),
     },
     handler(async (args) => client.sendMessage(args))
   );
@@ -46,6 +47,7 @@ export function registerGmailTools(server, client, handler) {
       fromName: z.string().optional().describe("Sender display name, e.g. \"Asian Power Awards\" (address stays the authenticated account)"),
       cc: z.string().optional(),
       bcc: z.string().optional(),
+      replyTo: z.string().optional().describe("Reply-To address: where replies should go, if not the sender"),
     },
     handler(async (args) => client.createDraft(args))
   );

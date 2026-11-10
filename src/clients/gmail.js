@@ -35,13 +35,19 @@ function base64Lines(text) {
   return Buffer.from(text, "utf8").toString("base64").replace(/.{76}/g, "$&\r\n");
 }
 
-function buildRawMessage({ to, subject, body, html, cc, bcc, from }) {
+// A header value must stay on one line, or text after a line break becomes a new header
+function oneLine(value) {
+  return String(value).replace(/[\r\n]+/g, " ").trim();
+}
+
+export function buildRawMessage({ to, subject, body, html, cc, bcc, from, replyTo }) {
   const headers = [];
-  if (from) headers.push(`From: ${from}`);
-  headers.push(`To: ${to}`);
-  if (cc) headers.push(`Cc: ${cc}`);
-  if (bcc) headers.push(`Bcc: ${bcc}`);
-  headers.push(`Subject: ${encodeHeader(subject)}`);
+  if (from) headers.push(`From: ${oneLine(from)}`);
+  headers.push(`To: ${oneLine(to)}`);
+  if (cc) headers.push(`Cc: ${oneLine(cc)}`);
+  if (bcc) headers.push(`Bcc: ${oneLine(bcc)}`);
+  if (replyTo) headers.push(`Reply-To: ${oneLine(replyTo)}`);
+  headers.push(`Subject: ${encodeHeader(oneLine(subject))}`);
   headers.push("MIME-Version: 1.0");
   let content;
   if (html) {
@@ -97,21 +103,28 @@ export class GmailClient {
   }
 
   // From header with a display name, on the authenticated account's own address
-  async fromHeader(fromName) {
-    if (!fromName) return undefined;
+  // The authenticated account's own address
+  async getAddress() {
     if (!this.address) {
       const res = await this.gmail.users.getProfile({ userId: "me" });
       this.address = res.data.emailAddress;
     }
+    return this.address;
+  }
+
+  async fromHeader(fromName) {
+    if (!fromName) return undefined;
+    const address = await this.getAddress();
+    fromName = oneLine(fromName);
     const name = /^[\x20-\x7e]*$/.test(fromName)
       ? `"${fromName.replace(/["\\]/g, "\\$&")}"`
       : encodeHeader(fromName);
-    return `${name} <${this.address}>`;
+    return `${name} <${address}>`;
   }
 
-  async sendMessage({ to, subject, body, html, htmlPath, fromName, cc, bcc }) {
+  async sendMessage({ to, subject, body, html, htmlPath, fromName, cc, bcc, replyTo }) {
     const from = await this.fromHeader(fromName);
-    const raw = buildRawMessage({ to, subject, body, html: resolveHtml({ html, htmlPath }), cc, bcc, from });
+    const raw = buildRawMessage({ to, subject, body, html: resolveHtml({ html, htmlPath }), cc, bcc, from, replyTo });
     const res = await this.gmail.users.messages.send({
       userId: "me",
       requestBody: { raw },
@@ -119,9 +132,9 @@ export class GmailClient {
     return res.data;
   }
 
-  async createDraft({ to, subject, body, html, htmlPath, fromName, cc, bcc }) {
+  async createDraft({ to, subject, body, html, htmlPath, fromName, cc, bcc, replyTo }) {
     const from = await this.fromHeader(fromName);
-    const raw = buildRawMessage({ to, subject, body, html: resolveHtml({ html, htmlPath }), cc, bcc, from });
+    const raw = buildRawMessage({ to, subject, body, html: resolveHtml({ html, htmlPath }), cc, bcc, from, replyTo });
     const res = await this.gmail.users.drafts.create({
       userId: "me",
       requestBody: { message: { raw } },
