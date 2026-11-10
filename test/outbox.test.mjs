@@ -100,3 +100,34 @@ test("dryRun sends and writes nothing", async () => {
   assert.equal(log.length, 0);
   assert.deepEqual(res.wouldSend, [{ row: 2, to: "ann@co.com", subject: "Hello" }]);
 });
+
+// ---- the report row written by bin/send-outbox.mjs ----
+import { outboxReportRow, OUTBOX_LOG_HEADER } from "../src/clients/outbox.js";
+const clean = { account: ME, sent: [], failed: [], invalid: [], wrongAccount: [], stuckInSending: [], readyLeftForNextRun: 0 };
+
+test("report row: nothing to send", () => {
+  const r = outboxReportRow(clean, "2026-11-10 12:30:00");
+  assert.equal(r.length, OUTBOX_LOG_HEADER.length);
+  assert.deepEqual(r, ["2026-11-10 12:30:00", ME, "NOTHING TO SEND", 0, 0, 0, 0, 0, ""]);
+});
+
+test("report row: a clean send lists recipient and subject", () => {
+  const r = outboxReportRow({ ...clean, sent: [{ row: 2, to: "ann@co.com", subject: "Hello", messageId: "m1" }], readyLeftForNextRun: 1 }, "t");
+  assert.deepEqual(r.slice(2, 8), ["SENT", 1, 0, 1, 0, 0]);
+  assert.equal(r[8], "Sent row 2: ann@co.com | Hello");
+});
+
+test("report row: anything that needs a person is a PROBLEM", () => {
+  const failed = outboxReportRow({ ...clean, sent: [{ row: 2, to: "a@b.com", subject: "S" }], failed: [{ row: 3, to: "x@y.com", error: "boom" }] }, "t");
+  assert.equal(failed[2], "PROBLEM");
+  assert.match(failed[8], /FAILED row 3: x@y\.com \| boom/);
+  assert.equal(outboxReportRow({ ...clean, stuckInSending: [4] }, "t")[2], "PROBLEM");
+  assert.equal(outboxReportRow({ ...clean, wrongAccount: [{ row: 5, expected_from: "o@x.com" }] }, "t")[7], 1);
+  assert.equal(outboxReportRow({ ...clean, invalid: [{ row: 6, to: "", problems: ["no html"] }] }, "t")[2], "PROBLEM");
+});
+
+test("report row: a run that could not happen is an ERROR", () => {
+  const r = outboxReportRow({ error: "invalid_grant", account: undefined }, "t");
+  assert.deepEqual(r.slice(0, 5), ["t", "", "ERROR", 0, 0]);
+  assert.equal(r[8], "invalid_grant");
+});

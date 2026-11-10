@@ -67,6 +67,31 @@ export function planOutbox(values, myAddress, max = 5) {
   return plan;
 }
 
+export const OUTBOX_LOG_HEADER = ["ran_at", "account", "result", "sent", "failed", "left_waiting", "stuck_in_sending", "refused", "details"];
+
+// One log row for one run, in OUTBOX_LOG_HEADER order. `result` is a sendOutbox result,
+// or { error } when the run could not be done at all. Pure: no I/O.
+export function outboxReportRow(result, ranAt) {
+  if (result.error) return [ranAt, result.account || "", "ERROR", 0, 0, "", "", "", String(result.error).slice(0, 500)];
+  const refused = result.invalid.length + result.wrongAccount.length;
+  const stuck = result.stuckInSending.length;
+  const problem = result.failed.length || refused || stuck || result.stoppedEarly;
+  const lines = [
+    ...result.sent.map((m) => `Sent row ${m.row}: ${m.to} | ${m.subject}`),
+    ...result.failed.map((m) => `FAILED row ${m.row}: ${m.to} | ${m.error}`),
+    ...result.invalid.map((m) => `Refused row ${m.row}: ${m.problems.join("; ")}`),
+    ...result.wrongAccount.map((m) => `Refused row ${m.row}: queued for ${m.expected_from}, not this account`),
+    ...(stuck ? [`Stuck in SENDING, needs a person: row(s) ${result.stuckInSending.join(", ")}`] : []),
+    ...(result.stoppedEarly ? [result.stoppedEarly] : []),
+  ];
+  return [
+    ranAt, result.account,
+    problem ? "PROBLEM" : result.sent.length ? "SENT" : "NOTHING TO SEND",
+    result.sent.length, result.failed.length, result.readyLeftForNextRun, stuck, refused,
+    lines.join("\n").slice(0, 5000),
+  ];
+}
+
 export async function sendOutbox({ gmail, sheets, spreadsheetId, tab = "OUTBOX", max = 5, dryRun = false }) {
   max = Math.max(1, Math.min(20, max));
   const quoted = `'${tab.replace(/'/g, "''")}'`;
