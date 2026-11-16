@@ -17,6 +17,7 @@ import { registerCalendarTools } from "./tools/calendar.tools.js";
 import { registerGmailTools } from "./tools/gmail.tools.js";
 import { registerDocsTools } from "./tools/docs.tools.js";
 import { registerSlidesTools } from "./tools/slides.tools.js";
+import { registerOutboxTools } from "./tools/outbox.tools.js";
 
 // --- Auth ---
 const auth = await getAuthClient();
@@ -59,6 +60,7 @@ registerCalendarTools(server, clients.calendar, handler);
 registerGmailTools(server, clients.gmail, handler);
 registerDocsTools(server, clients.docs, handler);
 registerSlidesTools(server, clients.slides, handler);
+registerOutboxTools(server, clients, handler);
 
 // --- Start (stdio transport) ---
 const transport = new StdioServerTransport();

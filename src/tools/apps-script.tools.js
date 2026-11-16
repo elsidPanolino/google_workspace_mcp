@@ -46,6 +46,42 @@ export function registerAppsScriptTools(server, client, handler) {
   );
 
   server.tool(
+    "gas_patch_content",
+    "Safer than gas_update_content: find-and-replace edits inside ONE file; all other files are left untouched and never resent. Each find must match exactly once (or set replaceAll). Backs up the old content to backups/gas/ and verifies the write. Use dryRun to preview.",
+    {
+      scriptId: z.string(),
+      file: z.string().describe('File name as shown by gas_get_content, e.g. "Code" or "appsscript"'),
+      edits: z
+        .array(
+          z.object({
+            find: z.string().min(1),
+            replace: z.string(),
+            replaceAll: z.boolean().optional(),
+          })
+        )
+        .min(1)
+        .describe("Applied in order, each on the result of the previous one"),
+      dryRun: z.boolean().optional(),
+    },
+    handler(async ({ scriptId, file, edits, dryRun }) => client.patchFile(scriptId, file, edits, dryRun))
+  );
+
+  server.tool(
+    "gas_put_file",
+    "Replace or add ONE file in a script project with the contents of a local file (read by the server, so nothing is retyped). localPath must be inside the repo's scripts/ or backups/ folder. Other files untouched; backs up to backups/gas/ and verifies the write. Use dryRun to preview.",
+    {
+      scriptId: z.string(),
+      file: z.string().describe('File name in the project, e.g. "Code" or "appsscript"'),
+      type: z.enum(["SERVER_JS", "HTML", "JSON"]),
+      localPath: z.string().describe("Path relative to the repo root, e.g. scripts/lib-Code.gs"),
+      dryRun: z.boolean().optional(),
+    },
+    handler(async ({ scriptId, file, type, localPath, dryRun }) =>
+      client.putFile(scriptId, file, type, localPath, dryRun)
+    )
+  );
+
+  server.tool(
     "gas_create_version",
     "Create an immutable version. Required before deploying.",
     { scriptId: z.string(), description: z.string().optional() },

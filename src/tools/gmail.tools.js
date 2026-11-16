@@ -20,26 +20,34 @@ export function registerGmailTools(server, client, handler) {
 
   server.tool(
     "gmail_send",
-    "Send an email as the authenticated user.",
+    "Send an email as the authenticated user. Plain text by default; pass html (inline) or htmlPath (a file in the repo's scripts/ folder) to send HTML, with body as the plain-text fallback.",
     {
       to: z.string().describe("Recipient(s), comma-separated"),
       subject: z.string(),
-      body: z.string().describe("Plain-text body"),
+      body: z.string().describe("Plain-text body (the fallback part when html/htmlPath is set)"),
+      html: z.string().optional().describe("HTML body, inline"),
+      htmlPath: z.string().optional().describe("Path relative to the repo root of an HTML file inside scripts/, e.g. scripts/email.html"),
+      fromName: z.string().optional().describe("Sender display name, e.g. \"Asian Power Awards\" (address stays the authenticated account)"),
       cc: z.string().optional(),
       bcc: z.string().optional(),
+      replyTo: z.string().optional().describe("Reply-To address: where replies should go, if not the sender"),
     },
     handler(async (args) => client.sendMessage(args))
   );
 
   server.tool(
     "gmail_create_draft",
-    "Create a draft email (does not send).",
+    "Create a draft email (does not send). Plain text by default; pass html or htmlPath for an HTML draft, with body as the plain-text fallback.",
     {
       to: z.string(),
       subject: z.string(),
-      body: z.string(),
+      body: z.string().describe("Plain-text body (the fallback part when html/htmlPath is set)"),
+      html: z.string().optional().describe("HTML body, inline"),
+      htmlPath: z.string().optional().describe("Path relative to the repo root of an HTML file inside scripts/, e.g. scripts/email.html"),
+      fromName: z.string().optional().describe("Sender display name, e.g. \"Asian Power Awards\" (address stays the authenticated account)"),
       cc: z.string().optional(),
       bcc: z.string().optional(),
+      replyTo: z.string().optional().describe("Reply-To address: where replies should go, if not the sender"),
     },
     handler(async (args) => client.createDraft(args))
   );
