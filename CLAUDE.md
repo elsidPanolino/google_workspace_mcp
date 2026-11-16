@@ -4,7 +4,7 @@
 
 Node.js MCP server that exposes the **full Google Workspace API surface** to MCP clients (Claude Code, Claude Desktop). One OAuth2 login grants access to seven Google services through a single set of tools.
 
-**78 tools across 7 services:** Sheets (26), Drive (12), Apps Script (14), Calendar (7), Gmail (7), Docs (6), Slides (6).
+**79 tools across 7 services:** Sheets (26), Drive (12), Apps Script (14), Calendar (7), Gmail (8), Docs (6), Slides (6).
 
 ## Safety Rules (MANDATORY — these tools touch live company data)
 

@@ -2,7 +2,7 @@
 
 A Node.js [Model Context Protocol](https://modelcontextprotocol.io) server that exposes the **full Google Workspace API surface** to MCP clients such as Claude Code and Claude Desktop. One OAuth2 login grants access to seven Google services through a single set of tools.
 
-**78 tools across 7 services:**
+**79 tools across 7 services:**
 
 | Service     | Tools | Underlying API           |
 |-------------|-------|--------------------------|
@@ -10,7 +10,7 @@ A Node.js [Model Context Protocol](https://modelcontextprotocol.io) server that 
 | Drive       | 12    | `google.drive` v3        |
 | Apps Script | 14    | `google.script` v1       |
 | Calendar    | 7     | `google.calendar` v3     |
-| Gmail       | 7     | `google.gmail` v1        |
+| Gmail       | 8     | `google.gmail` v1        |
 | Docs        | 6     | `google.docs` v1         |
 | Slides      | 6     | `google.slides` v1       |
 
