@@ -131,3 +131,64 @@ test("report row: a run that could not happen is an ERROR", () => {
   assert.deepEqual(r.slice(0, 5), ["t", "", "ERROR", 0, 0]);
   assert.equal(r[8], "invalid_grant");
 });
+
+// ---- follow-ups: a row with in_reply_to is sent as a reply inside that conversation ----
+const FU_HEADER = [...HEADER, "lead_email", "kind", "in_reply_to"];
+const fuRow = (over = {}) => {
+  const base = { to: "ann@co.com", sender_name: "Asian Telecom", expected_from: ME, subject: "Re: Hello",
+    plain: "Hi Ann", html: "<p>Hi Ann</p>", state: "READY" };
+  const r = { ...base, ...over };
+  return FU_HEADER.map((h) => r[h] ?? "");
+};
+const fuWorld = (values, threadRef) => {
+  const sent = [], writes = [];
+  return {
+    sent, writes,
+    gmail: { getAddress: async () => ME, threadRef,
+      sendMessage: async (m) => { sent.push(m); return { id: "new1" }; } },
+    sheets: { readRange: async () => ({ values }),
+      batchWrite: async (id, data) => { writes.push(...data.map((d) => [d.range, d.values[0][0]])); } },
+  };
+};
+
+test("In-Reply-To and References headers are written for a reply", () => {
+  const msg = decode(buildRawMessage({ to: "a@b.com", subject: "Re: S", body: "x", inReplyTo: "<abc@mail.gmail.com>" }));
+  assert.match(msg, /\r\nIn-Reply-To: <abc@mail\.gmail\.com>\r\n/);
+  assert.match(msg, /\r\nReferences: <abc@mail\.gmail\.com>\r\n/);
+  assert.doesNotMatch(decode(buildRawMessage({ to: "a@b.com", subject: "S", body: "x" })), /In-Reply-To|References/);
+});
+
+test("a row with in_reply_to is sent inside that conversation", async () => {
+  const asked = [];
+  const w = fuWorld([FU_HEADER, fuRow({ kind: "FOLLOWUP 1", in_reply_to: "orig1" })],
+    async (id) => { asked.push(id); return { threadId: "t1", messageIdHeader: "<orig@mail.gmail.com>" }; });
+  const res = await sendOutbox({ gmail: w.gmail, sheets: w.sheets, spreadsheetId: "s" });
+  assert.deepEqual(asked, ["orig1"]);
+  assert.equal(w.sent[0].threadId, "t1");
+  assert.equal(w.sent[0].inReplyTo, "<orig@mail.gmail.com>");
+  assert.equal(w.sent[0].replyToMessageId, undefined);
+  assert.equal(res.sent.length, 1);
+  assert.ok(w.writes.some(([range, v]) => /!P2$/.test(range) && v === ""), "no note on a clean threaded send");
+});
+
+test("when the earlier message cannot be found the email still goes, as a new one, and the row says so", async () => {
+  const w = fuWorld([FU_HEADER, fuRow({ kind: "FOLLOWUP 1", in_reply_to: "gone" })],
+    async () => { throw new Error("Requested entity was not found."); });
+  const res = await sendOutbox({ gmail: w.gmail, sheets: w.sheets, spreadsheetId: "s" });
+  assert.equal(res.sent.length, 1);
+  assert.equal(w.sent[0].threadId, undefined);
+  assert.equal(w.sent[0].inReplyTo, undefined);
+  assert.ok(w.writes.some(([, v]) => /^Sent as a new email, not in the original conversation: Requested entity/.test(String(v))));
+});
+
+test("a row without in_reply_to (an invitation, or an older tab) is sent exactly as before", async () => {
+  let asked = 0;
+  const w = fuWorld([FU_HEADER, fuRow({ subject: "Hello" })], async () => { asked++; return {}; });
+  await sendOutbox({ gmail: w.gmail, sheets: w.sheets, spreadsheetId: "s" });
+  assert.equal(asked, 0);
+  assert.deepEqual(Object.keys(w.sent[0]).sort(), ["body", "cc", "fromName", "html", "replyTo", "subject", "to"]);
+  const old = fuWorld([HEADER, row()], async () => { asked++; return {}; });
+  await sendOutbox({ gmail: old.gmail, sheets: old.sheets, spreadsheetId: "s" });
+  assert.equal(asked, 0);
+  assert.equal(old.sent.length, 1);
+});

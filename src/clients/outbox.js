@@ -62,6 +62,8 @@ export function planOutbox(values, myAddress, max = 5) {
       html: String(values[r][col.html]),
       fromName: get("sender_name"),
       replyTo: get("reply_to"),
+      // optional column: the Gmail id of an earlier message this one answers (a follow-up)
+      replyToMessageId: get("in_reply_to"),
     });
   }
   return plan;
@@ -125,11 +127,24 @@ export async function sendOutbox({ gmail, sheets, spreadsheetId, tab = "OUTBOX",
   }
 
   for (const item of plan.toSend) {
-    const { row, ...message } = item;
+    const { row, replyToMessageId, ...message } = item;
     await write(row, { state: "SENDING" });
+    let note = "";
+    if (replyToMessageId) {
+      // a follow-up: reply inside the conversation of the earlier message. If that message
+      // cannot be found, it still goes, as a new email, and the row says so.
+      try {
+        const ref = await gmail.threadRef(replyToMessageId);
+        if (!ref.threadId || !ref.messageIdHeader) throw new Error("it has no conversation or Message-ID");
+        message.threadId = ref.threadId;
+        message.inReplyTo = ref.messageIdHeader;
+      } catch (error) {
+        note = `Sent as a new email, not in the original conversation: ${String(error.response?.data?.error?.message || error.message).slice(0, 150)}`;
+      }
+    }
     try {
       const res = await gmail.sendMessage(message);
-      await write(row, { state: "SENT", sent_at: new Date().toISOString(), message_id: res.id || "", note: "" });
+      await write(row, { state: "SENT", sent_at: new Date().toISOString(), message_id: res.id || "", note });
       result.sent.push({ row, to: item.to, subject: item.subject, messageId: res.id });
     } catch (error) {
       const msg = String(error.response?.data?.error?.message || error.message).slice(0, 200);

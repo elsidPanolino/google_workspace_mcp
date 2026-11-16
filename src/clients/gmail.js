@@ -40,13 +40,18 @@ function oneLine(value) {
   return String(value).replace(/[\r\n]+/g, " ").trim();
 }
 
-export function buildRawMessage({ to, subject, body, html, cc, bcc, from, replyTo }) {
+export function buildRawMessage({ to, subject, body, html, cc, bcc, from, replyTo, inReplyTo }) {
   const headers = [];
   if (from) headers.push(`From: ${oneLine(from)}`);
   headers.push(`To: ${oneLine(to)}`);
   if (cc) headers.push(`Cc: ${oneLine(cc)}`);
   if (bcc) headers.push(`Bcc: ${oneLine(bcc)}`);
   if (replyTo) headers.push(`Reply-To: ${oneLine(replyTo)}`);
+  if (inReplyTo) {
+    // a reply: these two headers put it in the same conversation in the recipient mail program
+    headers.push(`In-Reply-To: ${oneLine(inReplyTo)}`);
+    headers.push(`References: ${oneLine(inReplyTo)}`);
+  }
   headers.push(`Subject: ${encodeHeader(oneLine(subject))}`);
   headers.push("MIME-Version: 1.0");
   let content;
@@ -122,14 +127,24 @@ export class GmailClient {
     return `${name} <${address}>`;
   }
 
-  async sendMessage({ to, subject, body, html, htmlPath, fromName, cc, bcc, replyTo }) {
+  // threadId + inReplyTo (from threadRef) make the message a reply inside an existing conversation
+  async sendMessage({ to, subject, body, html, htmlPath, fromName, cc, bcc, replyTo, threadId, inReplyTo }) {
     const from = await this.fromHeader(fromName);
-    const raw = buildRawMessage({ to, subject, body, html: resolveHtml({ html, htmlPath }), cc, bcc, from, replyTo });
+    const raw = buildRawMessage({ to, subject, body, html: resolveHtml({ html, htmlPath }), cc, bcc, from, replyTo, inReplyTo });
     const res = await this.gmail.users.messages.send({
       userId: "me",
-      requestBody: { raw },
+      requestBody: threadId ? { raw, threadId } : { raw },
     });
     return res.data;
+  }
+
+  // What a reply to one of this mailbox own messages needs: its conversation and its Message-ID header
+  async threadRef(messageId) {
+    const res = await this.gmail.users.messages.get({
+      userId: "me", id: messageId, format: "metadata", metadataHeaders: ["Message-ID"],
+    });
+    const header = (res.data.payload?.headers || []).find((h) => h.name.toLowerCase() === "message-id");
+    return { threadId: res.data.threadId, messageIdHeader: header ? header.value : "" };
   }
 
   async createDraft({ to, subject, body, html, htmlPath, fromName, cc, bcc, replyTo }) {
